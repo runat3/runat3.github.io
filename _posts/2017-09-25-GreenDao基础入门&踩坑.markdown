@@ -1,0 +1,224 @@
+---
+layout:     post
+title:      "GreenDao基础入门&踩坑"
+subtitle:   " \"android orm框架\""
+date:       2017-09-25 22:59:00
+author:     "Jason Chen"
+header-img: "img/post-bg-2015.jpg"
+tags:
+    - 开发
+    - 数据库
+---
+
+之前用过用过ActiveAndroid用久了发现使用起来还是不怎么方便，于是找到了GreenDao这个ORM框架
+![](http://upload-images.jianshu.io/upload_images/7793862-e98308de66f8a505.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+## 为啥选这GreenDao
+
+1. 性能较于其他ORM框架有明显优势，内存占用小
+
+![](http://upload-images.jianshu.io/upload_images/7793862-37159ffb0d943366.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+2. 文档完善
+   [GreenDao官方文档](http://greenrobot.org/greendao/documentation/)
+   [GreenDao参考API](http://greenrobot.org/greendao/documentation/javadoc/)
+3. 流行度高
+   占据GitHub ORM排行第一（技术的东西随大流还是可以的）
+   [GitHub ORM框架](https://github.com/search?l=Java&o=desc&q=orm&s=stars&type=Repositories&utf8=%E2%9C%93)
+4. 使用简单
+5. 拓展性强，可配置高级功能
+
+## 如何使用基本的GreenDao
+
+#### 1. 在project的build.gradle中添加依赖
+
+```
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral() // add repository
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.3.0'
+        classpath 'org.greenrobot:greendao-gradle-plugin:3.2.2' // add plugin
+    }
+}
+```
+
+** 1号坑 **
+
+![](http://upload-images.jianshu.io/upload_images/7793862-e5edf3d058f4c65a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+出现上述情况，是因为GreenDao所需要的gradle的最低版本是3.3
+解决方法：
+**法①**：
+选择Use local gradle distribution![](http://upload-images.jianshu.io/upload_images/7793862-eac1ac2331c1697c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+把gradle的版本最低升级到3.3，如果没有请到https://services.gradle.org/distributions/下载
+下载完解压放在本地gradle目录
+**法②：**
+选择Use default gradle wrapper，然后修改gradle-wrapper.properties文件
+![](http://upload-images.jianshu.io/upload_images/7793862-b51693beb6ba7023.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+**2号坑 **
+
+> ![](http://upload-images.jianshu.io/upload_images/7793862-875414f3ff5bed70.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+> ***！！！ classpath 'com.android.tools.build:gradle:2.3.0'这里注意使用自己的Android Studio Gradle插件版本***
+
+#### 2. 在moudle的build.gradle中添加依赖
+
+```groovy
+apply plugin: 'org.greenrobot.greendao' // apply plugin
+compile 'org.greenrobot:greendao:3.2.2' // add library
+```
+
+#### 3. 在moudle的build.gradle中定义GreenDao代码生成的路径
+
+```groovy
+greendao {
+    schemaVersion 1 //数据库版本号，后期需要升级数据库，这里版本号必须增加
+    daoPackage 'com.sam.greendao.gen'  //Dao代码生成在这个包中
+    targetGenDir 'src/main/java' //包位于这个路径下
+}
+```
+
+![2,3步截图](http://upload-images.jianshu.io/upload_images/7793862-79f675d9fb84c848.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+#### 4.通过简单的注解，编写Entity实体类
+
+```java
+@Entity //代表这是一个数据库隐射的实体类
+public class Student
+{
+    @Id //实体类的唯一标识，数据类型只能是long的
+    private long id;
+    private String name;
+}
+```
+
+*注：这里不需要自己去生成get(),set()方法*
+更多注解请查看http://greenrobot.org/greendao/documentation/modelling-entities/
+
+#### 5. Build->Make Module '你的moudle名'
+
+GreenDao自动生成一下几个类
+
+![](http://upload-images.jianshu.io/upload_images/7793862-a58ea3c6fadb3e7d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+#### 6.初始化数据库
+
+```java
+    //初始化数据库
+    private void initDB()
+    {
+        //创建Person_db数据库
+        DaoMaster.DevOpenHelper person_db = new DaoMaster.DevOpenHelper(MainActivity.this, "Person_db", null);
+        DaoMaster daoMaster = new DaoMaster(person_db.getWritableDb());
+        //实例一个操作seeeion
+        DaoSession daoSession = daoMaster.newSession();
+        //获得Student表的数据访问对象
+        studentDao = daoSession.getStudentDao();
+    }
+```
+
+#### 7. 增 ---插入数据
+
+```java
+//插入数据
+    private void insertDB()
+    {
+        //实例化一个实体，相当于数据表里面的一条记录
+        student_a = new Student(111, "伞兵一号");
+        student_b = new Student(222, "伞兵二号");
+        student_c = new Student(333, "吃鸡");
+        //插入数据库
+        studentDao.insert(student_a);
+        studentDao.insert(student_b);
+        studentDao.insert(student_c);
+    }
+```
+
+*注：创建对象的时候id不能重复*
+用sqlite工具查看一下，数据插入成功
+
+![](http://upload-images.jianshu.io/upload_images/7793862-6a46259e03b20a1a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+这边的rowid是行记录的物理位置id不用管它
+
+#### 8. 查 ---查询数据
+
+- 查询所有数据
+
+```java
+    //查询表中所有数据
+    private void queryAllDB()
+    {
+        List<Student> list = studentDao.queryBuilder().list();
+        for (Student student:list)
+        {
+            Log.e("queryAllDB: ",student.toString() );
+        }
+    }
+```
+
+![查询结果](http://upload-images.jianshu.io/upload_images/7793862-91a218d13237af12.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+- 条件查询
+
+```java
+//条件查询数据
+    private void queryDB()
+    {
+        List<Student> list = studentDao.queryBuilder().where(StudentDao.Properties.Name.like("%伞%")).list();
+        for (Student student:list)
+        {
+            Log.e("queryDB: ",student.toString() );
+        }
+    }
+```
+
+![条件查询结果](http://upload-images.jianshu.io/upload_images/7793862-0233334b74a9e895.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+GreenDao还提供一系列查询语句，如下
+![查询](http://upload-images.jianshu.io/upload_images/7793862-9dbb056ba0bc73c7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+**3号坑**
+！！！特别注意：如果是通过懒加载查询LazyList<Student> list = studentDao.queryBuilder().where(StudentDao.Properties.Name.like("%伞%")).listLazy();
+来查询的话要记得调用**lazyListlist.close()**避免内存泄漏，listLazyUncached()和listIterator()也必须调用close()方法
+
+#### 9. 改 ---修改数据
+
+```java
+    //修改数据
+    private void updateDB()
+    {
+        //查询到name='吃鸡'的Student
+        Student student = studentDao.queryBuilder().where(StudentDao.Properties.Name.eq("吃鸡")).build().unique();
+        //修改name字段
+        student.setName("大吉大利，今晚吃鸡");
+        //update数据
+        studentDao.update(student);
+    }
+```
+
+![修改成功](http://upload-images.jianshu.io/upload_images/7793862-04165582555cc112.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+#### 10. 删 ---删除数据
+
+```java
+    //修改数据
+    private void deleteDB()
+    {
+        //查询到name='大吉大利，今晚吃鸡'的Student
+        Student student = studentDao.queryBuilder().where(StudentDao.Properties.Name.eq("大吉大利，今晚吃鸡")).build().unique();
+        //删除数据
+        studentDao.delete(student);
+    }
+```
+
+![删除成功](http://upload-images.jianshu.io/upload_images/7793862-b385d7b8c057ce93.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+#### 11.  GreenDao获得Cursor对象
+
+```java
+DBUserDao userDao = daoSession.getDBUserDao();
+QueryBuilder<DBUser> queryBuilder = userDao.queryBuilder().where(DBUserDao.Properties.Phone_number.eq("XYZ"));
+Cursor cursor = queryBuilder.buildCursor().query();
+```
+

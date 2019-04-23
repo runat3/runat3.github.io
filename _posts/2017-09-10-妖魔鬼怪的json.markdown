@@ -17,7 +17,6 @@ tags:
 服务端：不用
 前端：。。。。。。。。（一脸懵逼ing）
 
-```json
 [
   [
     "2017-09-07 15:00:00",
@@ -44,17 +43,17 @@ tags:
     "9068"
   ]
 ]
-```
 
 以前没有key的jsonArray见过不少，但是没有key的jsonArray和没有key的jsonObject还是第一次见到
 尝试一下解析，实在不行就让服务端改数据
 
-**想法一：**
+### 想法一：
+
 拿到数据的时候，第一眼看过去，咦！这不是个二维数组吗。
 *但是怎么把长的像二位数组的String变成String二维数组？*
 百度谷歌一番后木有找到办法。暂时放弃pass，有想法的下面留言交流下😁
 
-**想法二：**
+### 想法二：
 硬着头皮当成json数据一层层解析下去
 
 ![](http://upload-images.jianshu.io/upload_images/7793862-194f66117ce508c8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
