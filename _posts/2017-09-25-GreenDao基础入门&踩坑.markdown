@@ -15,9 +15,9 @@ tags:
 
 ## 为啥选这GreenDao
 
-1. 性能较于其他ORM框架有明显优势，内存占用小
-
 ![](http://upload-images.jianshu.io/upload_images/7793862-37159ffb0d943366.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+1. 性能较于其他ORM框架有明显优势，内存占用小
 
 2. 文档完善
    [GreenDao官方文档](http://greenrobot.org/greendao/documentation/)
