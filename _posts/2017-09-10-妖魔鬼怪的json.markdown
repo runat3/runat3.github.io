@@ -1,0 +1,76 @@
+---
+layout:     post
+title:      "妖魔鬼怪的json"
+subtitle:   " \"确定不是二维数组吗？囧~\""
+date:       2017-09-10 22:59:00
+author:     "Jason Chen"
+header-img: "img/post-bg-2015.jpg"
+tags:
+    - 开发
+---
+
+前端：这是啥数据？
+服务端：json啊
+前端：这是json？
+服务端：是啊
+前端：key呢？
+服务端：不用
+前端：。。。。。。。。（一脸懵逼ing）
+
+```json
+[
+  [
+    "2017-09-07 15:00:00",
+    "4217.000",
+    "4225.000",
+    "4215.000",
+    "4215.000",
+    "20312"
+  ],
+  [
+    "2017-09-07 14:55:00",
+    "4206.000",
+    "4214.000",
+    "4206.000",
+    "4213.000",
+    "9936"
+  ],
+  [
+    "2017-09-04 10:10:00",
+    "4319.000",
+    "4321.000",
+    "4315.000",
+    "4319.000",
+    "9068"
+  ]
+]
+```
+
+以前没有key的jsonArray见过不少，但是没有key的jsonArray和没有key的jsonObject还是第一次见到
+尝试一下解析，实在不行就让服务端改数据
+
+**想法一：**
+拿到数据的时候，第一眼看过去，咦！这不是个二维数组吗。
+*但是怎么把长的像二位数组的String变成String二维数组？*
+百度谷歌一番后木有找到办法。暂时放弃pass，有想法的下面留言交流下😁
+
+**想法二：**
+硬着头皮当成json数据一层层解析下去
+
+![](http://upload-images.jianshu.io/upload_images/7793862-194f66117ce508c8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+观察一波结构，最外面是jsonArray->jsonArray->无jsonObject，没有key，只有value。
+开始动手一层层解析
+
+![for循环取出每个jsonArray](http://upload-images.jianshu.io/upload_images/7793862-7e4050a9f5c08cda.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+![](http://upload-images.jianshu.io/upload_images/7793862-72527b6b703176a2.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+接下来，正常的jsonArray都是用getJSONObject(index)方式取出对象再解析下去，但是这边没有jsonObject。
+但是！！！在IDE联想代码的时候发现了一个方法**getString(int index)**
+
+![getString(int index)](http://upload-images.jianshu.io/upload_images/7793862-6acb9e58b5b6f1b2.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+这个方法取出的是不是value，试一下
+
+![](http://upload-images.jianshu.io/upload_images/7793862-d992d8df1143c7f7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+登登登登，值都取出来了。
+![](http://upload-images.jianshu.io/upload_images/7793862-1381a83310a789a7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
