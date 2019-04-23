@@ -27,7 +27,7 @@ tags:
 自定义View继承Textview，然后将view通过添加到WindowManager中
 关键代码如下
 
-```
+```java
     /**
      * 显示app信息文字
      * show info text
@@ -60,7 +60,7 @@ tags:
 
 显示的文字
 
-```
+```java
 /**
      * 获取app信息
      * get info
@@ -102,7 +102,7 @@ tags:
 - Host：接口的baseUrl，用于分辨是测试环境还是线上环境
   其他的信息可以根据需求添加删除
 
-#### 用法
+  ### 用法
 
 1. 拷贝TextView4Dev到你的项目中
 2. 在MainActivity中实例化`TextView4Dev textView4Dev = new TextView4Dev(this);`
