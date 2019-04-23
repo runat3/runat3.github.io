@@ -3,7 +3,7 @@ layout:     post
 title:      "Text4Develop"
 subtitle:   " \"A TextView For Android Develop\""
 date:       2018-04-19 17:56:00
-author:     "jason"
+author:     "Jason Chen"
 header-img: "img/post-bg-2015.jpg"
 tags:
     - 开发
@@ -102,7 +102,7 @@ tags:
 - Host：接口的baseUrl，用于分辨是测试环境还是线上环境
   其他的信息可以根据需求添加删除
 
-  ### 用法
+### 用法
 
 1. 拷贝TextView4Dev到你的项目中
 2. 在MainActivity中实例化`TextView4Dev textView4Dev = new TextView4Dev(this);`
@@ -110,7 +110,4 @@ tags:
 
 注意事项：需要获取权限ACTION_MANAGE_OVERLAY_PERMISSION
 
-完整代码请查看demo->[GitHub](https://github.com/CzSam/TextView4Dev/tree/master)，如果对您有用的话，请star一下，感激不尽~
-
-
-
+完整代码请查看demo->[GitHub](https://github.com/DefendHairline/TextView4Dev/tree/master)，如果对您有用的话，请star一下，感激不尽~
