@@ -2,7 +2,7 @@
 layout:     post
 title:      "Glide的使用&GlideApp怎么来的"
 subtitle:   " \"简单易上手的强大图片框架\""
-date:       2017-09-10 18:21:00
+date:       2017-10-09 18:21:00
 author:     "Jason Chen"
 header-img: "img/post-bg-2015.jpg"
 tags:
