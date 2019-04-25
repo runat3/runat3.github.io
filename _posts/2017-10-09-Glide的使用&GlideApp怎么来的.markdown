@@ -6,7 +6,7 @@ date:       2017-10-09 18:21:00
 author:     "Jason Chen"
 header-img: "img/post-bg-2015.jpg"
 tags:
-    - 开发
+    - Android
     - 图像
 ---
 

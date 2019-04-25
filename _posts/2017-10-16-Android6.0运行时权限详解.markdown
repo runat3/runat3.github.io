@@ -1,0 +1,135 @@
+---
+layout:     post
+title:      "Android 6.0 运行时权限详解"
+subtitle:   ""
+date:       2017-10-16 15:09:00
+author:     "Jason Chen"
+header-img: "img/post-bg-2015.jpg"
+tags:
+    - Android
+---
+
+Android系统在6.0之前APP所需的权限都在安装时全部授予。
+出于安全考虑在6.0加入运行时权限。
+
+## 1.  运行时权限
+
+> 用户可直接在运行时管理应用权限。这种模式让用户能够更好地了解和控制权限，同时为应用开发者精简了安装和自动更新过程。用户可为所安装的各个应用分别授予或撤销权限。 
+
+## 2. 在什么时候需要出现运行时权限
+
+- Android 6.0
+- App申请危险权限
+
+------
+
+![危险权限和权限组](http://upload-images.jianshu.io/upload_images/7793862-d184afd215a97e7e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+**权限组作用**：
+如果应用请求其清单中列出的危险权限，而应用在同一权限组中已有另一项危险权限，则系统会立即授予该权限，而无需与用户进行任何交互。
+例如，如果某应用已经请求并且被授予了 READ_CONTACTS权限，然后它又请求 WRITE_CONTACTS，系统将立即授予该权限
+
+## 3.  如何申请权限
+
+Android官方提供了两种方法
+
+#### 2.1  使用Intent
+
+例如，假设应用需要使用设备相机才能够拍摄照片。应用可以请求 CAMERA
+权限，以便允许其直接访问相机。然后，应用将使用 Camera API 控制相机并拍摄照片。利用此方法，您的应用能够完全控制摄影过程，并支持您将相机 UI 整合至应用中。
+不过，如果您无需此类完全控制，则可以使用 ACTION_IMAGE_CAPTURE
+ intent 来请求图像。发送该 intent 时，系统会提示用户选择相机应用（如果没有默认相机应用）。用户使用选定的相机应用拍摄照片，该相机应用会将照片返回给应用的onActivityResult()方法。
+
+#### 2.2   运行时申请权限(仅要求您需要的权限)
+
+##### 2.2.1 运行时申请权限的原则
+
+###### ①根据需要请求权限
+
+###### ②解释需要权限的原因
+
+![运行时申请权限流程图](http://upload-images.jianshu.io/upload_images/7793862-eda8d5c01863c676.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+##### 2.2.2 代码实现
+
+```java
+    //获取权限
+    public void callpremission(View view)
+    {
+        //系统版本号23/6.0之后/api23
+        if (Build.VERSION.SDK_INT >= 23)
+        {
+            //检查有没有所需的权限 PackageManager.PERMISSION_GRANTED：授权了权限
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
+            {
+                //请求获取所需的权限，第二个参数：需要的权限（可以多个集合）第三个参数：请求码
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUIRE_CODE_CALL_CAMERA);
+                return;
+            }
+        }
+    }
+
+    //权限获取回调的方法
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
+    {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode)
+        {
+            case REQUIRE_CODE_CALL_CAMERA:
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                {
+                    Log.e("权限log", "回调");
+                } else
+                {
+                    // Permission Denied拒绝
+                    Toast.makeText(this, "CAMERA Denied", Toast.LENGTH_SHORT)
+                            .show();
+                    SharedPreferences gosetting = getSharedPreferences("gosetting", MODE_PRIVATE);
+                    boolean isGoSetting = gosetting.getBoolean("isGoSetting", false);
+                    //用户首次拒绝申请权限时，不需弹窗提示去设置申请权限
+                    if (isGoSetting)
+                    {
+                        //当缺少权限时弹窗提示
+                        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                        builder.setIcon(R.mipmap.ic_launcher)
+                                .setTitle("缺少权限")
+                                .setMessage("去设置权限")
+                                .setPositiveButton("GoSetting", new DialogInterface.OnClickListener()
+                                {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i)
+                                    {
+                                        //打开App的设置
+                                        getAppDetailSettingIntent(getBaseContext());
+                                    }
+                                }).show();
+                    }
+                    SharedPreferences.Editor edit = gosetting.edit();
+                    edit.putBoolean("isGoSetting", true).commit();
+                }
+                break;
+            default:
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
+    //打开App的设置
+    private void getAppDetailSettingIntent(Context context)
+    {
+        Intent localIntent = new Intent();
+        localIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (Build.VERSION.SDK_INT >= 9)
+        {
+            localIntent.setAction("android.settings.APPLICATION_DETAILS_SETTINGS");
+            localIntent.setData(Uri.fromParts("package", getPackageName(), null));
+        } else if (Build.VERSION.SDK_INT <= 8)
+        {
+            localIntent.setAction(Intent.ACTION_VIEW);
+            localIntent.setClassName("com.android.settings", "com.android.settings.InstalledAppDetails");
+            localIntent.putExtra("com.android.settings.ApplicationPkgName", getPackageName());
+        }
+        startActivity(localIntent);
+    }
+```
+
+demo：https://github.com/DefendHairline/PermissionTest

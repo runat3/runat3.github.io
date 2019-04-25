@@ -6,8 +6,8 @@ date:       2017-09-25 22:59:00
 author:     "Jason Chen"
 header-img: "img/post-bg-2015.jpg"
 tags:
-    - 开发
     - 数据库
+    - Android
 ---
 
 之前用过用过ActiveAndroid用久了发现使用起来还是不怎么方便，于是找到了GreenDao这个ORM框架
