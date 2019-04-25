@@ -132,4 +132,4 @@ Android官方提供了两种方法
     }
 ```
 
-demo：https://github.com/DefendHairline/PermissionTest
+[demo](https://github.com/DefendHairline/PermissionTest)
