@@ -85,5 +85,9 @@ friends: [
     {
         title: "Hux Blog",
         href: "http://huangxuan.me"
+    },
+    {
+        title: "minilv",
+        href: "https://minilv.github.io/"
     }
 ]
