@@ -132,7 +132,7 @@ public class CustomTextView extends TextView
 
 ![](http://upload-images.jianshu.io/upload_images/7793862-7e92a109d5a2d6df.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-#### （2）更换整个App的字体
+#### (2)更换整个App的字体
 
 思路：遍历找到所有的TextView然后替换字体
 找到下面工具类
