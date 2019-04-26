@@ -1,0 +1,408 @@
+---
+layout:     post
+title:      "Android修改字体样式"
+subtitle:   ""
+date:       2017-10-24 17:09:00
+author:     "Jason Chen"
+header-img: "img/post-bg-2015.jpg"
+tags:
+    - Android
+---
+
+在Android实际开发中根据UI的设计图，经常要去改变系统默认的字体样式
+这样做会使apk变大很多啊
+而且为什么android要使用ios的字体-_-#
+
+# 单独设置字体样式
+
+#### Android系统提供了几种字体样式可供选择
+
+通过设置typeface属性或者fontFamily属性设置
+typeface属性：
+
+- normal
+- serif
+- sans
+- monospace 
+
+fontFamily属性：
+
+- casual
+- cursive
+- serif
+- monospace
+- sans-serif
+- sans-serif-condensed
+- serif-monospace
+- sans-serif-smallcaps
+
+
+
+![](http://upload-images.jianshu.io/upload_images/7793862-0918f1cbd6698bc2.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+#### typeface和fontFamily区别
+
+android:typeface属性是增加API1
+android:fontFamily在API16（4.1）中添加了属性
+
+#### 当同时设置typeface和fontFamily时，只有fontFamily生效
+
+查看一波TextView的源码
+
+```java
+    private void setTypefaceFromAttrs(String familyName, int typefaceIndex, int styleIndex) {
+        Typeface tf = null;
+        if (familyName != null) {
+            tf = Typeface.create(familyName, styleIndex);
+            if (tf != null) {
+                setTypeface(tf);
+                return;
+            }
+        }
+        switch (typefaceIndex) {
+            case SANS:
+                tf = Typeface.SANS_SERIF;
+                break;
+
+            case SERIF:
+                tf = Typeface.SERIF;
+                break;
+
+            case MONOSPACE:
+                tf = Typeface.MONOSPACE;
+                break;
+        }
+
+        setTypeface(tf, styleIndex);
+    }
+```
+
+从方法setTypefaceFromAttrs()看，如果你有set fontFamily属性，那么typefaceattribute将被忽略。
+
+***这边会发现这样设置typeface和fontFamily属性对中文不生效，这时候就需要引用外部的字体样式（这里谷歌设计规范推荐使用NOTO字体https://www.google.com/get/noto/）***
+
+# 使用字体样式文件设置(otf，ttf文件都可以)
+
+在assets下新建一个fonts文件，把字体样式文件放进去
+
+![](http://upload-images.jianshu.io/upload_images/7793862-e6faaba2eae775d0.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+在代码中设置
+
+```
+AssetManager mgr = getAssets();
+Typeface tf = Typeface.createFromAsset(mgr, "fonts/NotoSansCJKsc-Black.otf");
+tv_1.setTypeface(tf);
+```
+
+## 批量设置字体样式
+
+#### (1)自定义TextView
+
+```java
+public class CustomTextView extends TextView
+{
+
+    public CustomTextView(Context context, AttributeSet attrs)
+    {
+        super(context, attrs);
+    }
+
+    //重写设置字体方法
+    @Override
+    public void setTypeface(Typeface tf)
+    {
+        tf = Typeface.createFromAsset(getContext().getAssets(), "fonts/NotoSansCJKsc-Light.otf");
+        super.setTypeface(tf);
+    }
+}
+```
+
+之后在XML布局文件中使用CustomTextView代替TextView
+
+```
+    <com.test.fontfamily.CustomTextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="6dp"
+        android:text="自定义字体"
+        android:textSize="24dp"
+        />
+```
+
+![](http://upload-images.jianshu.io/upload_images/7793862-7e92a109d5a2d6df.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+#### （2）更换整个App的字体
+
+思路：遍历找到所有的TextView然后替换字体
+找到下面工具类
+
+```java
+package com.test.fontfamily;
+
+import android.app.Application;
+import android.content.Context;
+import android.graphics.Typeface;
+import android.support.annotation.NonNull;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+
+import java.lang.ref.SoftReference;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Created by Administrator on 2017/10/24.
+ */
+
+public class FontUtils
+{
+
+    private static final String TAG = FontUtils.class.getSimpleName();
+    private Map<String, SoftReference<Typeface>> mCache = new HashMap<>();
+    private static FontUtils sSingleton = null;
+
+    public static Typeface DEFAULT = Typeface.DEFAULT;
+
+    // disable instantiate
+    private FontUtils()
+    {
+    }
+
+    public static FontUtils getInstance()
+    {
+        // double check
+        if (sSingleton == null)
+        {
+            synchronized (FontUtils.class)
+            {
+                if (sSingleton == null)
+                {
+                    sSingleton = new FontUtils();
+                }
+            }
+        }
+        return sSingleton;
+    }
+
+    /**
+     * <p>Replace the font of specified view and it's children</p>
+     *
+     * @param root     The root view.
+     * @param fontPath font file path relative to 'assets' directory.
+     */
+    public void replaceFontFromAsset(@NonNull View root, @NonNull String fontPath)
+    {
+        replaceFont(root, createTypefaceFromAsset(root.getContext(), fontPath));
+    }
+
+    /**
+     * <p>Replace the font of specified view and it's children</p>
+     *
+     * @param root     The root view.
+     * @param fontPath font file path relative to 'assets' directory.
+     * @param style    One of {@link Typeface#NORMAL}, {@link Typeface#BOLD}, {@link Typeface#ITALIC}, {@link Typeface#BOLD_ITALIC}
+     */
+    public void replaceFontFromAsset(@NonNull View root, @NonNull String fontPath, int style)
+    {
+        replaceFont(root, createTypefaceFromAsset(root.getContext(), fontPath), style);
+    }
+
+    /**
+     * <p>Replace the font of specified view and it's children</p>
+     *
+     * @param root     The root view.
+     * @param fontPath The full path to the font data.
+     */
+    public void replaceFontFromFile(@NonNull View root, @NonNull String fontPath)
+    {
+        replaceFont(root, createTypefaceFromFile(fontPath));
+    }
+
+    /**
+     * <p>Replace the font of specified view and it's children</p>
+     *
+     * @param root     The root view.
+     * @param fontPath The full path to the font data.
+     * @param style    One of {@link Typeface#NORMAL}, {@link Typeface#BOLD}, {@link Typeface#ITALIC}, {@link Typeface#BOLD_ITALIC}
+     */
+    public void replaceFontFromFile(@NonNull View root, @NonNull String fontPath, int style)
+    {
+        replaceFont(root, createTypefaceFromFile(fontPath), style);
+    }
+
+    /**
+     * <p>Replace the font of specified view and it's children with specified typeface</p>
+     */
+    private void replaceFont(@NonNull View root, @NonNull Typeface typeface)
+    {
+        if (root == null || typeface == null)
+        {
+            return;
+        }
+
+        if (root instanceof TextView)
+        { // If view is TextView or it's subclass, replace it's font
+            TextView textView = (TextView) root;
+            // Extract previous style of TextView
+            int style = Typeface.NORMAL;
+            if (textView.getTypeface() != null)
+            {
+                style = textView.getTypeface().getStyle();
+            }
+            textView.setTypeface(typeface, style);
+        } else if (root instanceof ViewGroup)
+        { // If view is ViewGroup, apply this method on it's child views
+            ViewGroup viewGroup = (ViewGroup) root;
+            for (int i = 0; i < viewGroup.getChildCount(); ++i)
+            {
+                replaceFont(viewGroup.getChildAt(i), typeface);
+            }
+        } // else return
+    }
+
+    /**
+     * <p>Replace the font of specified view and it's children with specified typeface and text style</p>
+     *
+     * @param style One of {@link Typeface#NORMAL}, {@link Typeface#BOLD}, {@link Typeface#ITALIC}, {@link Typeface#BOLD_ITALIC}
+     */
+    private void replaceFont(@NonNull View root, @NonNull Typeface typeface, int style)
+    {
+        if (root == null || typeface == null)
+        {
+            return;
+        }
+        if (style < 0 || style > 3)
+        {
+            style = Typeface.NORMAL;
+        }
+
+        if (root instanceof TextView)
+        { // If view is TextView or it's subclass, replace it's font
+            TextView textView = (TextView) root;
+            textView.setTypeface(typeface, style);
+        } else if (root instanceof ViewGroup)
+        { // If view is ViewGroup, apply this method on it's child views
+            ViewGroup viewGroup = (ViewGroup) root;
+            for (int i = 0; i < viewGroup.getChildCount(); ++i)
+            {
+                replaceFont(viewGroup.getChildAt(i), typeface, style);
+            }
+        } // else return
+    }
+
+    /**
+     * <p>Create a Typeface instance with specified font file</p>
+     *
+     * @param fontPath font file path relative to 'assets' directory.
+     * @return Return created typeface instance.
+     */
+    private Typeface createTypefaceFromAsset(Context context, String fontPath)
+    {
+        SoftReference<Typeface> typefaceRef = mCache.get(fontPath);
+        Typeface typeface = null;
+        if (typefaceRef == null || (typeface = typefaceRef.get()) == null)
+        {
+            typeface = Typeface.createFromAsset(context.getAssets(), fontPath);
+            typefaceRef = new SoftReference<>(typeface);
+            mCache.put(fontPath, typefaceRef);
+        }
+        return typeface;
+    }
+
+    private Typeface createTypefaceFromFile(String fontPath)
+    {
+        SoftReference<Typeface> typefaceRef = mCache.get(fontPath);
+        Typeface typeface = null;
+        if (typefaceRef == null || (typeface = typefaceRef.get()) == null)
+        {
+            typeface = Typeface.createFromFile(fontPath);
+            typefaceRef = new SoftReference<>(typeface);
+            mCache.put(fontPath, typefaceRef);
+        }
+        return typeface;
+    }
+
+    /**
+     * <p>Replace system default font. <b>Note:</b>you should also add code below to your app theme in styles.xml. </p>
+     * {@code <item name="android:typeface">monospace</item>}
+     * <p>The best place to call this method is {@link Application#onCreate()}, it will affect
+     * whole app font.If you call this method after view is visible, you need to invalid the view to make it effective.</p>
+     *
+     * @param context  {@link Context Context}
+     * @param fontPath font file path relative to 'assets' directory.
+     */
+    public void replaceSystemDefaultFontFromAsset(@NonNull Context context, @NonNull String fontPath)
+    {
+        replaceSystemDefaultFont(createTypefaceFromAsset(context, fontPath));
+    }
+
+    /**
+     * <p>Replace system default font. <b>Note:</b>you should also add code below to your app theme in styles.xml. </p>
+     * {@code <item name="android:typeface">monospace</item>}
+     * <p>The best place to call this method is {@link Application#onCreate()}, it will affect
+     * whole app font.If you call this method after view is visible, you need to invalid the view to make it effective.</p>
+     *
+     * @param context  {@link Context Context}
+     * @param fontPath The full path to the font data.
+     */
+    public void replaceSystemDefaultFontFromFile(@NonNull Context context, @NonNull String fontPath)
+    {
+        replaceSystemDefaultFont(createTypefaceFromFile(fontPath));
+    }
+
+    /**
+     * <p>Replace system default font. <b>Note:</b>you should also add code below to your app theme in styles.xml. </p>
+     * {@code <item name="android:typeface">monospace</item>}
+     * <p>The best place to call this method is {@link Application#onCreate()}, it will affect
+     * whole app font.If you call this method after view is visible, you need to invalid the view to make it effective.</p>
+     */
+    private void replaceSystemDefaultFont(@NonNull Typeface typeface)
+    {
+        modifyObjectField(null, "MONOSPACE", typeface);
+    }
+
+    private void modifyObjectField(Object obj, String fieldName, Object value)
+    {
+        try
+        {
+            Field defaultField = Typeface.class.getDeclaredField(fieldName);
+            defaultField.setAccessible(true);
+            defaultField.set(obj, value);
+
+        } catch (NoSuchFieldException e)
+        {
+            e.printStackTrace();
+        } catch (IllegalAccessException e)
+        {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+阅读源码发现这里面主要方法有
+
+- ###### replaceFont()
+
+  替换一个页面中的所有字体
+  用递归的方式去查找view是否是TextView或者TextView的子类，然后进行替换
+  不过这种方法效率不高
+  用法：
+  在页面中
+  FontUtils.getInstance().replaceFontFromAsset(View root,  String fontPath)
+
+- ###### modifyObjectField()
+
+  替换App所有字体
+  利用反射替换系统默认字体
+
+  ##### 用法：
+
+  a.新建一个BaseApplication继承Application在onCreate方法中 
+  FontUtils.getInstance().replaceSystemDefaultFontFromAsset(this,"fonts/NotoSansCJKsc-Thin.otf");
+  b.在AppTheme中添加
+  <item name="android:typeface">monospace</item>
+  c.清单文件中使用BaseApplication
