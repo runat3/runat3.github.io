@@ -1,0 +1,225 @@
+---
+layout:     post
+title:      "搭建中间凸起的Tab菜单结构"
+subtitle:   "搭建ui小技巧"
+date:       2017-11-13 12:09:00
+author:     "Jason Chen"
+header-img: "img/post-bg-2015.jpg"
+tags:
+    - Android
+    - UI
+---
+
+今年的双11又再一次刷新了记录，大家剁手做贡献了吗
+回到今天的主题，很多app底下的Tab菜单结构为了突出，中间的tab比两边的高。
+![](http://upload-images.jianshu.io/upload_images/7793862-cadde2489c46f67a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+### 思路
+
+- 使用FragmentTabHost搭建Tab菜单
+
+- 使用一张图片放在Tab中间
+  ###实现
+
+  ##### 1.使用FragmentTabHost搭建Tab菜单布局
+
+  activity_main.xml
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.test.tab.MainActivity">
+
+    <android.support.v4.app.FragmentTabHost
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@android:id/tabhost"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <FrameLayout
+                android:id="@android:id/tabcontent"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="0"/>
+
+            <FrameLayout
+                android:id="@+id/realtabcontent"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="0.8dp"
+                android:background="#c8c8c8"/>
+
+            <TabWidget
+                android:id="@android:id/tabs"
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="#00000000"
+                android:layout_weight="0"/>
+
+        </LinearLayout>
+    </android.support.v4.app.FragmentTabHost>
+    <!--中间的tab-->
+    <ImageView
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@mipmap/add"
+        android:layout_marginBottom="20dp"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"/>
+
+</RelativeLayout>
+```
+
+##### 2.编写每个tab的布局
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:gravity="center"
+              android:background="#ffffff"
+              android:orientation="vertical"
+    >
+
+    <ImageView
+        android:id="@+id/iv"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:src="@mipmap/ic_launcher"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tab"
+        android:textColor="@color/tab_text"
+        android:textSize="12sp"/>
+
+</LinearLayout>
+```
+
+![](http://upload-images.jianshu.io/upload_images/7793862-08b8619866b953c8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+##### 3.为每个tab实现点击选中的状态
+
+tab_text.xml
+tab文字在选中和未选中的颜色选择
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true" android:color="#0AA284"/>
+    <item android:state_selected="false" android:color="#747474"/>
+</selector>
+```
+
+tab_xxx.xml
+每个tab在选中和未选中的图标
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@mipmap/xxx" android:state_selected="true"></item>
+    <item android:drawable="@mipmap/xxx"></item>
+</selector>
+```
+
+##### 4.实现FragmentTabHost
+
+```java
+package com.test.tab;
+
+import android.support.v4.app.FragmentTabHost;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.ImageView;
+
+public class MainActivity extends AppCompatActivity
+{
+
+    private FragmentTabHost mTabHost;
+    int[] img = new int[]
+            {R.drawable.tab_article, R.drawable.tab_topic, R.mipmap.white, R.drawable.tab_mag, R.drawable.tab_site};
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        mTabHost = (FragmentTabHost) findViewById(android.R.id.tabhost);
+        mTabHost.setup(this, getSupportFragmentManager(), R.id.realtabcontent);
+
+         /**setIndicator:设置tab的样式
+         *TabFragment.class：点击tab展现的片段
+         *getBundle(0)：传入展现片段的bundle
+        */
+ mTabHost.addTab(mTabHost.newTabSpec("home").setIndicator(getIndicatorView(0)),
+                TabFragment.class, getBundle(0));
+        mTabHost.addTab(mTabHost.newTabSpec("find").setIndicator(getIndicatorView(1)),
+                TabFragment.class, getBundle(1));
+        mTabHost.addTab(mTabHost.newTabSpec("add").setIndicator(getIndicatorView(2)),
+                TabFragment.class, getBundle(2));
+        mTabHost.addTab(mTabHost.newTabSpec("news").setIndicator(getIndicatorView(3)),
+                TabFragment.class, getBundle(3));
+        mTabHost.addTab(mTabHost.newTabSpec("mine").setIndicator(getIndicatorView(4)),
+                TabFragment.class, getBundle(4));
+    }
+
+    public View getIndicatorView(int i)
+    {
+        View view = getLayoutInflater().inflate(R.layout.layout_indicator_view, null);
+        ImageView mImageView = (ImageView) view.findViewById(R.id.iv);
+        mImageView.setImageResource(img[i]);
+        return view;
+    }
+
+    public Bundle getBundle(int type)
+    {
+        Bundle bundle = new Bundle();
+        bundle.putInt("type", type);
+        return bundle;
+    }
+}
+
+```
+
+原本中间的tab用白色的图片资源代替
+运行效果：
+
+![](http://upload-images.jianshu.io/upload_images/7793862-21adbfe2aeb1226f.gif?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+已经完成了，但是点着点着发现一个问题，中间突出的tab，超过分割线上方的区域点击无效果
+![](http://upload-images.jianshu.io/upload_images/7793862-66725bc506403e84.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+方法：给图片设置一个点击事件
+
+```java
+ ImageView tab_add = (ImageView) findViewById(R.id.tab_add);
+        tab_add.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                //设置tab当前页面
+                mTabHost.setCurrentTab(2);
+            }
+        });
+```
+
+[Demo](https://github.com/CzSam/Democzs/tree/master/%E4%B8%AD%E9%97%B4%E5%87%B8%E8%B5%B7%E7%9A%84tab)
