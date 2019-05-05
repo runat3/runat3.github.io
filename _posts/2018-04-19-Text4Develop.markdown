@@ -10,19 +10,19 @@ tags:
     - 工具
 ---
 
-#### 场景
+# 场景
 
 在公司做开发的时候，手头上有几台测试机 ，这时候测试随便拿了一台去测，点来点去crash了。然后跑来怼~。其实测试拿过去的手机跑的代码不是最新的，但是最最新代码无法重现bug，你也没改过对应的代码。这时候你不知道你不知道出bug的版本是哪个，无法git回到对应的版本查看bug。也或者是由于Android版本差异性导致的，测试不能马上告知你手机Android版本。
 
-#### 解决方法
+# 解决方法
 
 在app种显示一个全局的视图，把apk最后更新的时间，版本等等信息展示出来，这样可以初步定位到问题。
 
-#### 效果图
+# 效果图
 
 ![demo](https://upload-images.jianshu.io/upload_images/7793862-d8b84bf32c786801.gif?imageMogr2/auto-orient/strip)
 
-#### 实现方式
+# 实现方式
 
 这个其实不难，主要的关键词是“全局”，这里用到了WindowManager。
 自定义View继承Textview，然后将view通过添加到WindowManager中
