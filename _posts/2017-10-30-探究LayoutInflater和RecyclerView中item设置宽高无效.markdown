@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "探究LayoutInflater和RecyclerView中item设置宽高无效"
-subtitle:   "LayoutInflater解密"
+subtitle:   "\"LayoutInflater解密\""
 date:       2017-10-30 17:28:00
 author:     "Jason Chen"
 header-img: "img/post-bg-2015.jpg"
