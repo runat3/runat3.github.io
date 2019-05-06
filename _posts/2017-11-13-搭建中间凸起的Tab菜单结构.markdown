@@ -14,14 +14,15 @@ tags:
 回到今天的主题，很多app底下的Tab菜单结构为了突出，中间的tab比两边的高。
 ![](http://upload-images.jianshu.io/upload_images/7793862-cadde2489c46f67a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-# 思路
+## 思路
+
 - 使用FragmentTabHost搭建Tab菜单
 - 使用一张图片放在Tab中间
 
-# 实现
-## 1.使用FragmentTabHost搭建Tab菜单布局
-activity_main.xml
+## 实现
 
+#### 1.使用FragmentTabHost搭建Tab菜单布局
+activity_main.xml
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
@@ -82,7 +83,7 @@ activity_main.xml
 </RelativeLayout>
 ```
 
-## 2.编写每个tab的布局
+#### 2.编写每个tab的布局
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -113,7 +114,7 @@ activity_main.xml
 
 ![](http://upload-images.jianshu.io/upload_images/7793862-08b8619866b953c8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-## 3.为每个tab实现点击选中的状态
+#### 3.为每个tab实现点击选中的状态
 tab_text.xml
 tab文字在选中和未选中的颜色选择
 
@@ -136,7 +137,7 @@ tab_xxx.xml
 </selector>
 ```
 
-## 4.实现FragmentTabHost
+#### 4.实现FragmentTabHost
 ```java
 package com.test.tab;
 
@@ -200,7 +201,7 @@ public class MainActivity extends AppCompatActivity
 
 ![](http://upload-images.jianshu.io/upload_images/7793862-21adbfe2aeb1226f.gif?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-#### 问题
+###### 问题
 中间突出的tab，超过分割线上方的区域点击无效果
 ![](http://upload-images.jianshu.io/upload_images/7793862-66725bc506403e84.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 方法：给图片设置一个点击事件
