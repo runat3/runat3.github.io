@@ -1,0 +1,110 @@
+---
+layout:     post
+title:      "监听WebView页面上所有的图片"
+subtitle:   "\"不需要前端沟通实现交互\""
+date:       2017-12-04 15:16:00
+author:     "Jason Chen"
+header-img: "img/post-bg-2015.jpg"
+tags:
+    - Android
+---
+
+有两周没写简书了，有一丢丢懒惰了，还是要坚持下来啊
+废话不多说，进入主题
+
+#### 需求
+
+现在有一个类似聚合阅读的APP里面的文章都是以WebView来显示内容
+用户点击文章中的图片会进入到查看图片的页面
+####问题
+根据Android Hybrid的想法，需要在HTML页面中提供让Android调用的js方法，但是在的HTML中并没有提供让Android调用的方法的时候该怎么实现功能。
+
+#### 思路
+
+1. 使用WebView的js注入，为HTML加入js函数监听
+2. 在Android中添加当触发HTMl中js方法的接口
+
+#### 实现
+
+  布局就一个webview，这里就不贴出了
+  MainActivity.java
+
+```java
+public class MainActivity extends AppCompatActivity
+{
+
+    private static final String URL = "http://www.jianshu.com/p/c51174efd824";
+    private WebView webView;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        webView = (WebView) findViewById(R.id.wv_test);
+        //获得webview的设置，并设置webview支持js
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.setWebViewClient(new MyWebViewClient());
+        webView.addJavascriptInterface(new scriptInterface(MainActivity.this), "imagelistner");
+        webView.loadUrl(URL);
+    }
+
+
+    // WebViewClient监听
+    private class MyWebViewClient extends WebViewClient
+    {
+        @Override
+        public void onPageFinished(WebView view, String url)
+        {
+            // html加载完成之后，添加监听图片的点击js函数
+            addImageClickListner();
+        }
+    }
+
+    /**
+     * WebView与JS交互
+     **/
+    // 注入js函数监听
+    @android.webkit.JavascriptInterface
+    private void addImageClickListner()
+    {
+        // 这段js函数的功能就是，遍历所有的img标签，并添加onclick函数，在还是执行的时候调用本地接口传递url过去
+        webView.loadUrl("javascript:(function(){" +
+                "var objs = document.getElementsByTagName(\"img\"); "
+                + "for(var i=0;i<objs.length;i++)  " +
+                "{" + "    " +
+                "objs[i].onclick=function()  " + "    " +
+                "{  "
+                + "        window.imagelistner.openImage(this.src);  " + "   " +
+                " }  " + "}" + "})()");
+    }
+
+    // js通信接口
+    class scriptInterface
+    {
+
+        private Context context;
+
+        public scriptInterface(Context context)
+        {
+            this.context = context;
+        }
+
+        @android.webkit.JavascriptInterface
+        public void openImage(String img)
+        {
+            //模拟点击跳转
+            Toast.makeText(MainActivity.this, "点击了图片" + img,
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+}
+```
+
+#### 效果
+
+![](http://upload-images.jianshu.io/upload_images/7793862-7cf336e8ac233110.gif?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+[demo](https://github.com/CzSam/Democzs/tree/master/%E7%9B%91%E5%90%ACWebView%E4%B8%AD%E7%9A%84%E5%9B%BE%E7%89%87)
