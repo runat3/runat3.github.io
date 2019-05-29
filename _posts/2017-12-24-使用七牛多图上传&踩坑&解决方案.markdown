@@ -1,0 +1,184 @@
+---
+layout:     post
+title:      "使用七牛多图上传&踩坑&解决方案"
+subtitle:   "\"异步处理\""
+date:       2017-12-24 17:44:00
+author:     "Jason Chen"
+header-img: "img/post-bg-2015.jpg"
+tags:
+    - Android
+---
+
+很多项目都有上传图片的功能，有的保存在自己的服务器中，有的使用第三方存储服务
+这里我们使用七牛提供的对象存储服务
+![七牛对象存储](http://upload-images.jianshu.io/upload_images/7793862-73d7cbf6ca98e06c?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+# Android开发上传图片到七牛的步骤
+
+### 1. 集成七牛SDK
+
+```
+compile 'com.qiniu:qiniu-android-sdk:7.3.+'
+```
+
+### 2. 获得上传凭证token用于上传图片到七牛
+
+这一步没啥好说的，就是服务端会给你一个接口，你使用该接口获取token即可
+
+### 3. 然后调用七牛的API上传图片
+
+```java
+Configuration config = new Configuration.Builder()
+                    .chunkSize(512 * 1024)        // 分片上传时，每片的大小。 默认256K
+                    .putThreshhold(1024 * 1024)   // 启用分片上传阀值。默认512K
+                    .connectTimeout(10)           // 链接超时。默认10秒
+                    .useHttps(true)               // 是否使用https上传域名
+                    .responseTimeout(60)          // 服务器响应超时。默认60秒
+                    //.recorder(recorder)           // recorder分片上传时，已上传片记录器。默认null
+                    //.recorder(recorder, keyGen)   // keyGen 分片上传时，生成标识符，用于片记录器区分是那个文件的上传记录
+                    //.zone(FixedZone.zone0)        // 设置区域，指定不同区域的上传域名、备用域名、备用IP。
+                    .build();
+// 重用uploadManager一般地，只需要创建一个uploadManager对象
+UploadManager uploadManager = new UploadManager(config);
+//data = <File对象、或 文件路径、或 字节数组>
+//String key = <指定七牛服务上的文件名，或 null>;
+//String token = <从服务端获取>;
+uploadManager.put(data, key, token,
+    new UpCompletionHandler() {
+        @Override
+        public void complete(String key, ResponseInfo info, JSONObject res) {
+            //res包含hash、key等信息，具体字段取决于上传策略的设置
+             if(info.isOK()) {
+                Log.i("qiniu", "Upload Success");
+             } else {
+                Log.i("qiniu", "Upload Fail");
+                //如果失败，这里可以把info信息上报自己的服务器，便于后面分析上传错误原因
+             }
+             Log.i("qiniu", key + ",\r\n " + info + ",\r\n " + res);
+            }
+        }, null);
+```
+
+###### 注意：上传图片的时候报错401 bad token
+
+```java
+{ver:7.3.10,ResponseInfo:1514100119681772,status:401, reqId:WgYAAGJX5-KaKgMV, xlog:body:1;UP:2/401, xvia:vdn-fjfz-tel-1-2, host:upload-z2.qiniup.com, path:/, ip:27.155.94.248, port:443, duration:119 s, time:1514100744, sent:28058,error:bad token},
+          {"error":"bad token"}
+```
+
+这里我检查了很多遍，也和服务端再三确认token是没有错误的，但是为啥会报401 bad token
+然后ios端的告诉我，要**对token字符串进行处理，去掉token中的换行符和空格符**
+
+```java
+String a = qiNiuToken.replace("\\s", "");
+String token = a.replace("\n", "");
+```
+
+处理之后再次执行，Upload Success成功了！
+这里还是有疑问为什么明明Log打印出来的token字符串根本没看到换行符和空格符啊。。。。。
+
+# 七牛上传多张图片的问题
+
+### 问题一：怎么解决多图同时上传全部成功监听
+
+###### 假设场景：
+
+现在有一个新增商品页面，该页面需要先上传产品的5张细节图，拿到5张图片的url，才能提交新增商品。
+
+###### 问题：
+
+必须要监听所有图片上传成功，才能执行新增商品，但问题是七牛的对象上传接口默认一次只能传一个。
+总不可能同步的办法去一张张上传图片，一张传成功再传下一张。这样当图片很多的时候很没效率浪费时间。
+
+###### 思路：
+
+七牛有提供了上传进度回调的API，当进度percent等于1.0说明上传完成
+一张图片完成，任务完成计数+1，当计数等于图片的数量时，说明全图图片上传完成，执行新增商品操作
+
+```java
+uploadManager.put(data, key, token,handler,
+    new UploadOptions(null, null, false,
+        new UpProgressHandler(){
+            public void progress(String key, double percent){
+                Log.i("qiniu", key + ": " + percent);//上传进度
+            }
+        }, null));
+```
+
+###### 做法如下：
+
+将所有图片保存在一个容器中，foreach循环执行上传图片的操作
+
+声明一个变量来统计图片上传完成的张数
+private int uploadTaskCount;//七牛上传图片完成计数
+
+```java
+Log.i("qiniu", key + ": " + percent);
+if (percent == 1.0)//上传进度等于1.0说明上传完成,通知 完成任务+1
+  {
+    Message message = Message.obtain();
+    message.what = QI_NIU_UPLOAD_OK;
+    handler.sendMessage(message);
+  }
+```
+
+```java
+Handler handler = new Handler()
+    {
+        @Override
+        public void handleMessage(Message msg)
+        {
+            switch (msg.what)
+            {
+                case QI_NIU_UPLOAD_OK://七牛上传图片完成计数
+                    uploadTaskCount++;
+                    Log.e("uploadTaskCount", uploadTaskCount + "");
+                    if (uploadTaskCount == list.size())//容器中图片全部上传完成
+                    {
+                        //新增商品
+                    }
+                    break;
+            }
+        }
+    };
+```
+
+### 问题二：有序图片上传，返回的URL无序
+
+###### 假设场景：
+
+现在有一个新增商品页面，该页面需要先上传产品的1张主图和2张细节图，拿到3张图片的url保存到url容器中上传服务端，但是保存url的容器的要求，顺序依次为主图，细节图，细节图。
+
+###### 问题：
+
+在问题一中已经可以解决多图同时上传的问题，但是 返回的url是无序的
+例如：
+图片文件容器中有a.jpg（10M），b.jpg（0.5M），c.jpg（2M）这三张图片，a为主图，bc为细节图。同时上传，可能会出现b.jpg先传完添加url到url容器中，然后c.jpg传完添加url到容器中，最后才添加a.jpg的url到容器中。这与服务端要求的url顺序，是不符合的
+
+###### 思路
+
+七牛上传的API中可以指定上传的图片在七牛服务上的文件名
+**String key = <指定七牛服务上的文件名，或 null>;**
+
+```java
+ata = <File对象、或 文件路径、或 字节数组>
+String key = <指定七牛服务上的文件名，或 null>;
+String token = <从服务端SDK获取>;
+uploadManager.put(data, key, token,
+    new UpCompletionHandler() {
+        @Override
+        public void complete(String key, ResponseInfo info, JSONObject res) {
+            //res包含hash、key等信息，具体字段取决于上传策略的设置
+             if(info.isOK()) {
+                Log.i("qiniu", "Upload Success");
+             } else {
+                Log.i("qiniu", "Upload Fail");
+                //如果失败，这里可以把info信息上报自己的服务器，便于后面分析上传错误原因
+             }
+             Log.i("qiniu", key + ",\r\n " + info + ",\r\n " + res);
+            }
+        }, null)
+```
+
+这样就可以在上传的时候把原来的图片名+时间戳指定该图片在七牛服务上的文件名
+全部图片上传完成后得到保存所有图片的url容器，利用url中的时间戳对保存url的容器从新排序。时间戳最早的就是主图，放在容器第一个元素。
